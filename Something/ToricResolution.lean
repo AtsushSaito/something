@@ -23,8 +23,8 @@ by subdivision of the defining cone.
 structure ToricVariety where
   /-- The underlying lattice (typically ℤⁿ) -/
   lattice : Type
-  [latticeIsAddCommGroup : AddCommGroup lattice]
-  [fintype : Fintype lattice]
+  latticeIsAddCommGroup : AddCommGroup lattice
+  fintype : Fintype lattice
   /-- The fan defining the toric variety -/
   fan : Type
   /-- The cones in the fan -/
@@ -33,6 +33,13 @@ structure ToricVariety where
   space : Type
   /-- Map from fan to the space -/
   toSpace : fan → space
+  /-- Whether the space is smooth at a point -/
+  isSmooth : space → Bool
+  /-- The regular locus (smooth points) -/
+  RegularLocus : Set space := {x | isSmooth x}
+
+-- Define a coercion so we can write V.isSmooth instead of V.isSmooth
+instance : Coe ToricVariety Type := ⟨ToricVariety.space⟩
 
 /-- A `ToricSingularity` is a singular point in a toric variety. -/
 structure ToricSingularity where

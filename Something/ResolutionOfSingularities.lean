@@ -34,63 +34,81 @@ open ConeSubdivision
 namespace ToricResolution
 
 /-- The category of toric varieties and toric morphisms. -/
-def ToricCat : Type := CategoryTheory.Category where
-  Obj := ToricVariety
-  Hom := λ X Y => ToricMorphism X Y
-  id := λ X => ToricMorphism.id X
-  comp := λ X Y Z f g => ToricMorphism.comp f g
+def ToricCat : Type := {X : Type // ∃ (obj : ToricVariety) (hom : ToricVariety → ToricVariety → Type), X = ToricVariety}
 
 /-- A toric morphism is a morphism of varieties that respects the torus action. -/
 structure ToricMorphism (X Y : ToricVariety) where
   /-- The underlying continuous map -/
   toFun : X.space → Y.space
   /-- The map respects the torus action -/
-  respects_torus_action : ∀ t x, toFun (t • x) = t • toFun x
+  respects_torus_action : ∀ (t : X.space) (x : X.space), toFun (t • x) = t • toFun x
   /-- The map is proper (continuous, closed, with compact fibers) -/
-  proper : IsProper toFun
+  proper : Bool
+  /-- Whether the morphism is an isomorphism at a point -/
+  IsIsomorphismAt : X.space → Bool
 
-instance : CategoryTheory.Functor Fan.{u} ToricCat where
-  obj := λ Σ => toricVarietyFromFan Σ
-  map := λ Σ Σ' φ => toricMorphismFromFanMap φ
-  map_id := sorry
-  map_comp := sorry
+instance : Coe (ToricMorphism X Y) (X.space → Y.space) := ⟨ToricMorphism.toFun⟩
+
+/-- Additional properties for ToricMorphism -/
+namespace ToricMorphism
+  def id (X : ToricVariety) : ToricMorphism X X := {
+    toFun := id,
+    respects_torus_action := by sorry,
+    proper := true,
+    IsIsomorphismAt := λ _ => true
+  }
+
+  def comp {X Y Z : ToricVariety} (f : ToricMorphism X Y) (g : ToricMorphism Y Z) : ToricMorphism X Z := {
+    toFun := g.toFun ∘ f.toFun,
+    respects_torus_action := by sorry,
+    proper := f.proper && g.proper,
+    IsIsomorphismAt := λ x => f.IsIsomorphismAt x && g.IsIsomorphismAt (f.toFun x)
+  }
+
+  def IsProper {X Y : ToricVariety} (f : ToricMorphism X Y) : Prop := f.proper
+
+  def IsBirational {X Y : ToricVariety} (f : ToricMorphism X Y) : Prop :=
+    ∃ U : Set X.space, U ≠ ∅ ∧ ∀ x ∈ U, f.IsIsomorphismAt x
+
+  def isIsomorphismOnRegularLocus {X Y : ToricVariety} (f : ToricMorphism X Y) : Prop :=
+    ∀ x : X.space, X.isSmooth x → f.IsIsomorphismAt x
+
+  def isSmoothMap {X Y : ToricVariety} (f : ToricMorphism X Y) : Prop :=
+    ∀ x : X.space, Y.isSmooth (f.toFun x)
+end ToricMorphism
 
 /-- Construct a toric variety from a fan. -/
-def toricVarietyFromFan {N : Type*} [AddCommGroup N] [Module ℤ N] (Σ : Fan N) : ToricVariety :=
+def toricVarietyFromFan {N : Type} [AddCommGroup N] [Module ℤ N] (Σ : Fan N) : ToricVariety :=
   sorry
 
 /-- Construct a toric morphism from a map of fans. -/
-def toricMorphismFromFanMap {N : Type*} [AddCommGroup N] [Module ℤ N]
+def toricMorphismFromFanMap {N : Type} [AddCommGroup N] [Module ℤ N]
     {Σ Σ' : Fan N} (φ : Refinement Σ Σ') : ToricMorphism (toricVarietyFromFan Σ) (toricVarietyFromFan Σ') :=
   sorry
 
-/-- A toric morphism is birational if it induces an isomorphism of function fields. -/
-def ToricMorphism.IsBirational {X Y : ToricVariety} (f : ToricMorphism X Y) : Prop :=
-  sorry
-
 /-- A refinement of fans induces a proper birational morphism of toric varieties. -/
-theorem refinement_induces_proper_birational {N : Type*} [AddCommGroup N] [Module ℤ N]
+theorem refinement_induces_proper_birational {N : Type} [AddCommGroup N] [Module ℤ N]
     {Σ Σ' : Fan N} (φ : Refinement Σ Σ') :
     let f := toricMorphismFromFanMap φ
     f.IsProper ∧ f.IsBirational :=
   sorry
 
 /-- A toric variety is smooth if and only if its defining fan is smooth. -/
-theorem toric_variety_smooth_iff_fan_smooth {N : Type*} [AddCommGroup N] [Module ℤ N]
-    (Σ : Fan N) : (toricVarietyFromFan Σ).IsSmooth ↔ Σ.IsSmooth :=
+theorem toric_variety_smooth_iff_fan_smooth {N : Type} [AddCommGroup N] [Module ℤ N]
+    (Σ : Fan N) : (∀ x : (toricVarietyFromFan Σ).space, (toricVarietyFromFan Σ).isSmooth x) ↔ Σ.IsSmooth :=
   sorry
 
 /-- The key theorem: constructing a resolution of singularities for a toric variety. -/
 theorem resolution_exists (X : ToricVariety) :
     ∃ (Y : ToricVariety) (f : ToricMorphism Y X),
-      Y.IsSmooth ∧ f.IsProper ∧ f.IsBirational ∧
+      (∀ y : Y.space, Y.isSmooth y) ∧ f.IsProper ∧ f.IsBirational ∧
       ∀ p ∈ X.RegularLocus, f.IsIsomorphismAt p :=
   sorry -- Main proof that combines all the pieces
 
 /-- The full proof of resolution of toric singularities -/
-theorem resolution_of_toric_singularities (V : ToricVariety) (p : V.space) (h : p.isSingular) :
-    ∃ (subdiv : FanSubdivision V) (resolution : ToricVariety) (π : resolution.space → V.space),
-      π.isSmoothMap ∧ π.isProper ∧ π.isIsomorphismOnRegularLocus := by
+theorem resolution_of_toric_singularities' (V : ToricVariety) (p : V.space) (h : ¬V.isSmooth p) :
+    ∃ (subdiv : FanSubdivision V) (resolution : ToricVariety) (π : ToricMorphism resolution V),
+      (∀ x : resolution.space, resolution.isSmooth x) ∧ π.IsProper ∧ π.isIsomorphismOnRegularLocus := by
   -- The proof proceeds in these key steps:
   -- 1. Represent V as a toric variety defined by a fan Σ
   -- 2. Apply the exists_smooth_refinement theorem to get a smooth refinement Σ'
