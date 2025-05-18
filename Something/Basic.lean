@@ -6,8 +6,7 @@ theorem identity (n : Nat) : n = n := by
 theorem add_comm (a b : Nat) : a + b = b + a := by
   induction a with
   | zero =>
-    simp
+    rw [Nat.zero_add]
+    rw [← Nat.add_zero b]
   | succ n ih =>
-    simp
-    rw [ih]
-    rfl
+    rw [Nat.succ_add, ih, Nat.add_succ]
