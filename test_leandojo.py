@@ -5,7 +5,7 @@ Test script for LeanDojo with the current repository
 import os
 import subprocess
 import lean_dojo
-from lean_dojo import LeanGitRepo, trace, Dojo, Theorem
+from lean_dojo import LeanGitRepo, trace, Dojo
 
 def print_section(title):
     """Print a section header"""
@@ -40,26 +40,27 @@ def main():
         
         print_section("Tracing Repository")
         print("This may take a while...")
+        traced_repo = trace(repo)
+        print("Repository traced successfully")
         
-        # Direct file paths
-        file_path = "Something/Basic.lean"
-        theorem_name = "identity"
+        print_section("Getting Theorems")
+        theorems = traced_repo.get_theorems()
+        print(f"Found {len(theorems)} theorems:")
+        for theorem in theorems:
+            print(f"  - {theorem.full_name}")
         
-        print(f"Looking for theorem: {theorem_name} in file: {file_path}")
-        
-        # Create a Theorem directly
-        theorem = Theorem(repo, file_path, theorem_name, [])
-        
-        print_section("Interacting with Theorem")
-        print(f"Selected theorem: {theorem.full_name}")
-        
-        with Dojo(theorem) as (dojo, state):
-            print("\nInitial goal:")
-            print(state.pp_goals)
+        if theorems:
+            print_section("Interacting with Theorem")
+            theorem = theorems[0]
+            print(f"Selected theorem: {theorem.full_name}")
             
-            print('\nRunning tactic "rfl"...')
-            result = dojo.run_tactic("rfl")
-            print(f"Tactic result: {result.status}")
+            with Dojo(theorem) as (dojo, state):
+                print("\nInitial goal:")
+                print(state.pp_goals)
+                
+                print('\nRunning tactic "rfl"...')
+                result = dojo.run_tactic("rfl")
+                print(f"Tactic result: {result.status}")
     
     except Exception as e:
         print(f"Error during test: {e}")
